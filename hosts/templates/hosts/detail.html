@@ -1,0 +1,9 @@
+<h1>{{ host.common_name }}</h1>
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<ul>
+{% for modbus in modbus_list %}
+    <li for="choice{{ forloop.counter }}">{{ modbus }}</li>
+{% endfor %}
+
+<ul>

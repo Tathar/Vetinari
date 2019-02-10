@@ -1,0 +1,10 @@
+{% if latest_hosts_list %}
+    <ul>
+    {% for host in latest_hosts_list %}
+    <li><a href="{% url 'hosts:detail' host.id %}">{{ host.common_name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No host are available.</p>
+{% endif %}
+
