@@ -2,8 +2,14 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views import generic
+from django.contrib.auth.models import User, Group
 
+from rest_framework import viewsets
+
+from .serializers import UserSerializer, GroupSerializer, ModBusWatcherSerializer, HostSerializer, ModBusResultSerializer
 from .models import Host, ICMP_Watcher, ICMP_Result, ModBus_Watcher, ModBus_Result
+
+import django_filters.rest_framework
 
 
 class IndexView(generic.ListView):
@@ -52,17 +58,13 @@ def vote(request, question_id):
     """
     
     
-from django.contrib.auth.models import User, Group
-from rest_framework import viewsets
-from .serializers import UserSerializer, GroupSerializer, ModBusWatcherSerializer
-
-
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
+    filter_fields = ('__all__')
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -71,6 +73,17 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    filter_fields = ('__all__')
+
+
+class HostViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Host.objects.all()
+    serializer_class = HostSerializer
+    filter_fields = ('__all__')
+    
     
 class ModBusWatcherViewSet(viewsets.ModelViewSet):
     """
@@ -78,30 +91,17 @@ class ModBusWatcherViewSet(viewsets.ModelViewSet):
     """
     queryset = ModBus_Watcher.objects.all()
     serializer_class = ModBusWatcherSerializer
+    filter_fields = ('__all__')
     
-
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.renderers import JSONRenderer
-from rest_framework.parsers import JSONParser
-
-@csrf_exempt
-def ModBusWatcher_list(request):
+    
+class ModBusResultViewSet(viewsets.ModelViewSet):
     """
-    List all code snippets, or create a new snippet.
+    API endpoint that allows groups to be viewed or edited.
     """
-    if request.method == 'GET':
-        modbus = ModBus_Watcher.objects.all()
-        serializer = ModBusWatcherSerializer(modbus, many=True,context={'request': request})
-        return JsonResponse(serializer.data, safe=False)
-
-    elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = ModBusWatcherSerializer(data=data,context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
-
-
-
+    queryset = ModBus_Result.objects.all()
+    serializer_class = ModBusResultSerializer
+    filter_fields = ('__all__')
+    
+    
+    
+    

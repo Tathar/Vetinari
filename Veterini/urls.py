@@ -16,29 +16,29 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from hosts import api
-
 from hosts import views
-# from rest_framework import routers
-# router = routers.DefaultRouter()
-# router.register(r'users', views.UserViewSet)
-# router.register(r'groups', views.GroupViewSet)
-#router.register(r'host-detail', views.ModBusWatcherViewSet)
+from rest_framework import routers
+
+
+router = routers.DefaultRouter()
+router.register(r'users', views.UserViewSet)
+router.register(r'groups', views.GroupViewSet)
+router.register(r'host', views.HostViewSet)
+router.register(r'modbuswatcher', views.ModBusWatcherViewSet)
+router.register(r'modbusresult', views.ModBusResultViewSet)
 
 urlpatterns = [
-    path('hosts/', include('hosts.urls',namespace='hosts')),
+    path('hosts/', include('hosts.urls')),
     path('admin/', admin.site.urls),
-    path('api/hosts/', include(api.HostResource.urls())),
-    path('api/icmp_watcher/', include(api.ICMPWatcherResource.urls())),
-    path('api/icmp_result/', include(api.ICMPResultResource.urls())),
-    path('api/modbus_watcher/', include(api.ModBusWatcherResource.urls())),
-    path('api/modbus_result/', include(api.ModBusResultResource.urls())),
-    
-    
-#     path('', include(router.urls)),
-#     path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api/v1.0/', include((router.urls))),
+    path('api/v1.0/api-auth/', include('rest_framework.urls')),
 ]
 
 
-# from django.contrib.auth.models import User
-# user = User.objects.create_superuser('admin', '', 'admin')
+from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
+try :
+    user = User.objects.get(is_superuser=True)
+except ObjectDoesNotExist:
+    user = User.objects.create_superuser('admin', '', 'admin')
+
