@@ -4,7 +4,6 @@ from django.urls import reverse_lazy
 
 from .models import Host, ICMP_Watcher, ICMP_Result, ModBus_Watcher, ModBus_Result, ModBus_Result
 
-
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
@@ -29,14 +28,28 @@ class ModBusWatcherSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Watcher
-        fields = ('url', 'id', 'host', 'port', 'unit_ID', 'unit_ID', 'address', 'common_name', 'unit', 'factor')
-        
+        #fields = ('url', 'id', 'host', 'port', 'unit_ID', 'word','byte_bigEndian' ,'word_bigEndian' ,'vartype', 'address', 'common_name', 'unit', 'factor')
+        fields = ('__all__')
 
 class ModBusResultSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Result
         fields = ('url', 'id', 'modbus_watcher', 'date', 'data')
+        
+        
+class ICMPWatcherSerializer(serializers.HyperlinkedModelSerializer):
+    
+    class Meta:
+        model = ModBus_Watcher
+        fields = ('url', 'id', 'host')
+        
+
+class ICMPResultSerializer(serializers.HyperlinkedModelSerializer):
+    
+    class Meta:
+        model = ModBus_Result
+        fields = ('url', 'id', 'icmp_watcher', 'date', 'data', 'avg')
         
         
         

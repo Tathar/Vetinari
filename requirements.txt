@@ -1,0 +1,7 @@
+django>=1
+django-sitetree>1
+djangorestframework>=1
+django-filter>=1
+pymodmus>=1
+requests>=1
+
