@@ -24,7 +24,8 @@ router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'host', views.HostViewSet)
-router.register(r'modbuswatcher', views.ModBusWatcherViewSet)
+router.register(r'modbusconnection', views.ModBusConnectionViewSet)
+router.register(r'modbusaddress', views.ModBusAddressViewSet)
 router.register(r'modbusresult', views.ModBusResultViewSet)
 
 urlpatterns = [
@@ -41,4 +42,6 @@ try :
     user = User.objects.get(is_superuser=True)
 except ObjectDoesNotExist:
     user = User.objects.create_superuser('admin', '', 'admin')
+except :
+    pass
 

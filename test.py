@@ -2,7 +2,7 @@
 
 import requests
 from requests.auth import HTTPDigestAuth
-from json import  JSONEncoder
+# from json import  JSONEncoder
 
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
@@ -11,10 +11,59 @@ from pymodbus.exceptions import ConnectionException
 
 import time
 
+from operator import itemgetter
+
 SLEEP = 60
 
-def ModbusAddress(client, address, word = 1, unit_ID = 0, byteorder = True, wordorder = True, vartype = 1):
+url = "http://127.0.0.1:8000/api/v1.0/"
+user = "admin"
+password = "admin"
+result = requests.get(url,auth=(user,password))
+
+if(result.ok):
+    url_api = result.json()
+else :
+  # If response code is not ok (200), print the resulting http error code with description
+    result.raise_for_status()
+    
+VARTYPE_CHOICES = ((0, 'bits'),
+                   (1, '8bit_uint'),
+                   (2, '16bit_int'),
+                   (3, '16bit_uint'),
+                   (4, '32bit_float'),
+                   (5, '32bit_int'),
+                   (6, '32bit_uint'),
+                   (7, '64bit_float'),  
+                   (8, '64bit_int'),
+                   (9, '64bit_uint'),
+                   (10, '8bit_int'),
+                   (11, 'string'))
+
+def modbus_get_buffer(client, address = 0, count = 1, unit_ID = 0):
+    
+    if count == 0 :
+        return None
+    
+    try :
+        if address < 10000 :
+            return client.read_coils(address, count, unit=unit_ID)
+        elif address < 20000 :
+            return client.read_discrete_inputs(address-10000, count, unit=unit_ID)
+        elif address < 30000 :
+            pass
+        elif address < 40000 :
+            return client.read_holding_registers(address-30000, count, unit=unit_ID)
+        elif address < 50000 :
+            return client.read_input_registers(address-40000, count, unit=unit_ID)
+    except ConnectionException:
+        print("connection error")
+        print("client:%s address:%i count:%i unit_id:%i" %(client, address, count ,unit_ID))
+        return None
+    
         
+        
+def modbus_get_decoder(buffer, byteorder = True, wordorder = True):
+    
     if byteorder:
         byteorder_endian = Endian.Big
     else :
@@ -25,33 +74,85 @@ def ModbusAddress(client, address, word = 1, unit_ID = 0, byteorder = True, word
     else :
         wordorder_endian = Endian.Little
     
-    if address < 20000 :
-        pass
-    elif address < 30000 :
-        pass
-    elif address < 40000 :
-        pass
-    elif address < 50000 :
-        result = client.read_holding_registers(address-40000, word, unit=unit_ID)
-        decoder = BinaryPayloadDecoder.fromRegisters(result.registers,
-                                                     byteorder=byteorder_endian,
-                                                     wordorder=wordorder_endian)
+    return BinaryPayloadDecoder.fromRegisters(buffer.registers,
+                                              byteorder=byteorder_endian,
+                                              wordorder=wordorder_endian)
+    
+def modbus_decode(decoder, vartype = 0):
     
     if vartype == 0 :
+        return decoder.decode_bits()
+    elif vartype == 1 :
+        return decoder.decode_8bit_int()
+    elif vartype == 2:
+        return decoder.decode_8bit_uint()
+    elif vartype == 3 :
+        return decoder.decode_16bit_int()
+    elif vartype == 4 :
+        return decoder.decode_16bit_uint()
+    elif vartype == 5 :
+        return decoder.decode_32bit_float()
+    elif vartype ==  6:
         return decoder.decode_32bit_int()
+    elif vartype == 7 :
+        return decoder.decode_32bit_uint()
+    elif vartype == 8 :
+        return decoder.decode_64bit_float()
+    elif vartype == 9 :
+        return decoder.decode_64bit_int()
+    elif vartype == 10 :
+        return decoder.decode_64bit_uint()
+    elif vartype == 11 :
+        return decoder.decode_string()
+    elif vartype < 1 :
+        decoder.skip_bytes(vartype * -1)
+        return None
+    
+def modbusconnectionloop(modbusconnection) :
+    
+    ret = []
+    
+    for loop in modbusconnection["loop"] :
+        buffer = modbus_get_buffer(modbusconnection["client"], loop["firstaddress"],loop["count"] ,modbusconnection["unit_ID"])
+        if buffer is None :
+            continue
+        
+        decoder = modbus_get_decoder(buffer, modbusconnection["byteorder"], modbusconnection["wordorder"])
+            
+        for modbusaddress in modbusconnection["modbusaddress"] :
+    #                 print(modbusaddress["address"])
+            try :
+                print("address: %s skip: %i" % (modbusaddress["address"], modbusaddress["skip"]))
+            except KeyError:
+                pass
+            
+            result = modbus_decode(decoder, modbusaddress["vartype"])
+            
+            try :
+                decoder.skip_bytes(modbusaddress["skip"])
+            except KeyError:
+                pass
+    
+                data = {}
+                data["modbus_watcher"] = modbusaddress["url"]
+                data["data"] = result
+                ret.append(data)
+            
+    return ret
+    
+    
+def ModbusAddress(client, address, count = 1, unit_ID = 0, byteorder = True, wordorder = True, vartype = 0):
+        
+    buffer = modbus_get_buffer(client, address, count, unit_ID)
+    decoder = modbus_get_decoder(buffer, byteorder, wordorder)
+    return modbus_decode(decoder, vartype)
 
 
-base_url = "http://10.165.0.235:8000/api/v1.0/"
-user = "post"
-password = "postadmin"
-
-url = base_url + "host/"
 
 # It is a good practice not to hardcode the credentials. So ask the user to enter credentials at runtime
 #myResponse = requests.get(url,auth=HTTPDigestAuth(raw_input("username: "), raw_input("Password: ")), verify=True)
-myResponse = requests.get(url,auth=(user,password))
+myResponse = requests.get(url_api["host"],auth=(user,password))
 #myResponse = requests.get(url)
-
 
 # For successful API call, response code will be 200 (OK)
 if(myResponse.ok):
@@ -63,17 +164,75 @@ if(myResponse.ok):
 
     hosts = myResponse.json()["results"]
 
-    print("The response contains {0} properties".format(len(hosts)))
-    print("\n")
-
     for host in hosts:
-        url = base_url + "modbuswatcher/?host=" + str(host["id"])
-        reponse_modbus = requests.get(url,auth=(user,password))
-        host["modbuswatcher"] = reponse_modbus.json()["results"]
-        host["client"] = ModbusTcpClient(host["ip_address"])
+        url = url_api["modbusconnection"] + "?host=" + str(host["id"])
+        reponse_modbusconnection = requests.get(url,auth=(user,password))
+        if(reponse_modbusconnection.ok):
+            host["modbusconnection"] = reponse_modbusconnection.json()["results"]
+            
+            for connection in host["modbusconnection"] :
+                connection["client"] = ModbusTcpClient(host["ip_address"], port=connection["port"] )
+                url = url_api["modbusaddress"] + "?connection=" + str(connection["id"])
+                reponse_modbusaddress = requests.get(url,auth=(user,password))
+                if(reponse_modbusaddress.ok):
+                    connection["modbusaddress"] = reponse_modbusaddress.json()["results"]
+                    
+                    connection["modbusaddress"].sort(key=itemgetter("address"))
+                    
+                    connection["loop"] = []
+                    
+                    for i in range(5) :
+                        connection["loop"].append({"firstaddress": 100000 , "lastaddress" : 0, "count" : 0})
+                    
+                    last = None
+                    last_type = None
+                    
+                    for modbusaddress in connection["modbusaddress"] :
+                        
+                        
+                        type = int(modbusaddress["address"] / 10000) if modbusaddress["address"] != 0 else 0
+                        
+                        if last is None:
+                            #Premier passage dans la boucle
+                            pass
+                        
+                        if last is not None:
+                            last["skip"] = modbusaddress["address"] - last["address"] - last["count"] if type == last_type else 0
+                             
+                        
+                        if modbusaddress["address"] < connection["loop"][type]["firstaddress"] :
+                                connection["loop"][type]["firstaddress"] = modbusaddress["address"]
+                                 
+                        if modbusaddress["address"] > connection["loop"][type]["lastaddress"] :
+                                connection["loop"][type]["lastaddress"] = modbusaddress["address"]
+                                connection["loop"][type]["count"] = modbusaddress["count"]
+                                
+                        last = modbusaddress
+                        last_type = type
+                        print(modbusaddress["address"])
+                        
+
+                    for loop in connection["loop"] :
+                        loop["firstaddress"] = loop["firstaddress"] if loop["firstaddress"] != 100000 else 0
+                        loop["count"] = loop["lastaddress"] - loop["firstaddress"] + loop["count"] if loop["count"] > 0 else 0
+                        
+                    print(connection["loop"])
+                     
+                    
+                    
+                        
+                else:
+                    # If response code is not ok (200), print the resulting http error code with description
+                    reponse_modbusaddress.raise_for_status()
+            
+        else:
+            # If response code is not ok (200), print the resulting http error code with description
+            reponse_modbusconnection.raise_for_status()
 else:
   # If response code is not ok (200), print the resulting http error code with description
     myResponse.raise_for_status()
+
+
 
 while True :
     mytime = time.time()
@@ -81,25 +240,15 @@ while True :
 #        client = ModbusTcpClient(host["ip_address"])
 #        client.connect()
         
-
-        for modbuswatcher in host["modbuswatcher"] :
-#            print(modbuswatcher["address"])
-            try :
-                result = ModbusAddress(host["client"], modbuswatcher["address"],modbuswatcher["word"] ,modbuswatcher["unit_ID"] , vartype = modbuswatcher["vartype"] )
-            except ConnectionException:
-                print("connection error")
-            else:
-#                print(result)
-                url = base_url + "modbusresult/"
-                data = {}
-                data["modbus_watcher"] = modbuswatcher["url"]
-                data["data"] = result
-                json = JSONEncoder().encode(data)
-#                print(json)
-                reponse_modbus = requests.post(url,auth=(user,password),json = data)
+        request = []
+        for modbusconnection in host["modbusconnection"] :
+            
+            request.append(modbusconnectionloop(modbusconnection))
     
 #        client.close()
+    reponse_modbus = requests.post(url_api["modbusresult"],auth=(user,password),json = request)
     sleep =  (mytime + SLEEP ) - time.time()
+
     print("sleep " + str(sleep))
     if sleep > 0 :      
         time.sleep(sleep)

@@ -6,8 +6,10 @@ from django.contrib.auth.models import User, Group
 
 from rest_framework import viewsets
 
-from .serializers import UserSerializer, GroupSerializer, ModBusWatcherSerializer, HostSerializer, ModBusResultSerializer
-from .models import Host, ICMP_Watcher, ICMP_Result, ModBus_Watcher, ModBus_Result
+#from .serializers import UserSerializer, GroupSerializer, ModBusWatcherSerializer, HostSerializer, ModBusResultSerializer
+from hosts.serializers import *
+#from .models import Host, ICMP_Watcher, ICMP_Result, ModBus_Watcher, ModBus_Result
+from hosts.models import *
 
 import django_filters.rest_framework
 
@@ -84,13 +86,21 @@ class HostViewSet(viewsets.ModelViewSet):
     serializer_class = HostSerializer
     filter_fields = ('__all__')
     
-    
-class ModBusWatcherViewSet(viewsets.ModelViewSet):
+class ModBusConnectionViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows groups to be viewed or edited.
     """
-    queryset = ModBus_Watcher.objects.all()
-    serializer_class = ModBusWatcherSerializer
+    queryset = ModBus_Connection.objects.all()
+    serializer_class = ModBusConnectionSerializer
+    filter_fields = ('__all__')
+    
+    
+class ModBusAddressViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = ModBus_Address.objects.all()
+    serializer_class = ModBusAddressSerializer
     filter_fields = ('__all__')
     
     
