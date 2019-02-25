@@ -1,11 +1,12 @@
 from django.db import models
+from hosts.fields import *
 #from django.utils import timezone
 #import datetime
 
 class Host(models.Model):
     common_name = models.CharField(max_length=64)
     mac_address = models.CharField(max_length=17,blank=True) #AA:BB:CC:DD:EE:FF
-    ip_address = models.CharField(max_length=39) #IPv4 or IPv6
+    ip_address = models.GenericIPAddressField() #IPv4 or IPv6
     host_Name = models.CharField(max_length=64,blank=True)
     dns_Name = models.CharField(max_length=254,blank=True)
     added_Date = models.DateTimeField(auto_now_add=True)
@@ -73,7 +74,7 @@ class ModBus_Address(models.Model):
     common_name = models.CharField(max_length=64)
     unit = models.CharField(max_length=8)
     connection = models.ForeignKey(ModBus_Connection, on_delete=models.CASCADE)
-    address = models.IntegerField(default=0)
+    address = ModbusAddress(max_length=5, default=0)
     count = models.IntegerField(default=1)
     vartype = models.IntegerField(default=0, choices=VARTYPE_CHOICES)
     factor = models.FloatField(default=1)

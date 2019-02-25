@@ -39,22 +39,31 @@ VARTYPE_CHOICES = ((0, 'bits'),
                    (10, '8bit_int'),
                    (11, 'string'))
 
-def modbus_get_buffer(client, address = 0, count = 1, unit_ID = 0):
+def modbus_get_buffer(client, address, count = 1, unit_ID = 0):
     
     if count == 0 :
         return None
     
+    if len(address) = 5 :
+        modbus_add = address[1:4]
+        type = address[0]
+    else :
+        modbus_add = address
+        type = 0
+        
+    print("modbus type : %s address: %s" % (type, modbus_add))
+    
     try :
-        if address < 10000 :
-            return client.read_coils(address, count, unit=unit_ID)
-        elif address < 20000 :
-            return client.read_discrete_inputs(address-10000, count, unit=unit_ID)
-        elif address < 30000 :
+        if type == 0 :
+            return client.read_coils(modbus_add, count, unit=unit_ID)
+        elif type == 1 :
+            return client.read_discrete_inputs(modbus_add, count, unit=unit_ID)
+        elif type == 2 :
             pass
-        elif address < 40000 :
-            return client.read_holding_registers(address-30000, count, unit=unit_ID)
-        elif address < 50000 :
-            return client.read_input_registers(address-40000, count, unit=unit_ID)
+        elif type == 3 :
+            return client.read_holding_registers(modbus_add, count, unit=unit_ID)
+        elif type == 4 :
+            return client.read_input_registers(modbus_add, count, unit=unit_ID)
     except ConnectionException:
         print("connection error")
         print("client:%s address:%i count:%i unit_id:%i" %(client, address, count ,unit_ID))
