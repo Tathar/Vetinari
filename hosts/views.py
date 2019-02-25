@@ -112,6 +112,16 @@ class ModBusResultViewSet(viewsets.ModelViewSet):
     serializer_class = ModBusResultSerializer
     filter_fields = ('__all__')
     
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs:
+            data = kwargs["data"]
+    
+            # check if many is required
+            if isinstance(data, list):
+                kwargs["many"] = True
+    
+        return super(ModBusResultViewSet, self).get_serializer(*args, **kwargs)
+    
     
     
     

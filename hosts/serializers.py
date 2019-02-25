@@ -23,42 +23,42 @@ class HostSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = Host
-        fields = ('id', 'common_name', 'mac_address', 'ip_address', 'host_Name', 'dns_Name', 'added_Date')
+        fields = ("url", 'id', 'common_name', 'mac_address', 'ip_address', 'host_Name', 'dns_Name', 'added_Date')
         
         
 class ModBusConnectionSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Connection
-        fields = ('id', 'name', 'port', 'unit_ID', 'host', 'byte_bigEndian', 'word_bigEndian')
+        fields = ("url", 'id', 'name', 'port', 'unit_ID', 'host', 'byte_bigEndian', 'word_bigEndian')
 #        fields = ('__all__')        
         
 class ModBusAddressSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Address
-        fields = ('id', 'unit', 'connection', 'address', 'count','vartype', 'factor', 'delay', 'crit_min', 'warn_min', 'warn_max', 'crit_max')
+        fields = ("url", 'id', 'unit', 'connection', 'address', 'count','vartype', 'factor', 'delay', 'crit_min', 'warn_min', 'warn_max', 'crit_max')
 #         fields = ('__all__')
         
 class ModBusResultSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Result
-        fields = ('id', 'modbus_watcher', 'date', 'data')
+        fields = ("url", 'id', 'modbus_address', 'date', 'data')
         
         
 class ICMPWatcherSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ICMP_Watcher
-        fields = ('id', 'host')
+        fields = ("url", 'id', 'host')
         
 
 class ICMPResultSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ICMP_Result
-        fields = ('id', 'icmp_watcher', 'date', 'data', 'avg')
+        fields = ("url", 'id', 'icmp_watcher', 'date', 'data', 'avg')
         
         
         

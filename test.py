@@ -15,9 +15,9 @@ from operator import itemgetter
 
 SLEEP = 60
 
-url = "http://127.0.0.1:8000/api/v1.0/"
-user = "admin"
-password = "admin"
+url = "http://10.165.2.1/api/v1.0/"
+user = "api"
+password = "1motdePasse"
 result = requests.get(url,auth=(user,password))
 
 if(result.ok):
@@ -116,8 +116,7 @@ def modbusconnectionloop(modbusconnection) :
         buffer = modbus_get_buffer(modbusconnection["client"], loop["firstaddress"],loop["count"] ,modbusconnection["unit_ID"])
         if buffer is None :
             continue
-        
-        decoder = modbus_get_decoder(buffer, modbusconnection["byteorder"], modbusconnection["wordorder"])
+        decoder = modbus_get_decoder(buffer, modbusconnection["byte_bigEndian"], modbusconnection["word_bigEndian"])
             
         for modbusaddress in modbusconnection["modbusaddress"] :
     #                 print(modbusaddress["address"])
@@ -133,10 +132,10 @@ def modbusconnectionloop(modbusconnection) :
             except KeyError:
                 pass
     
-                data = {}
-                data["modbus_watcher"] = modbusaddress["url"]
-                data["data"] = result
-                ret.append(data)
+            data = {}
+            data["modbus_address"] = modbusaddress["url"]
+            data["data"] = result
+            ret.append(data)
             
     return ret
     
@@ -232,21 +231,23 @@ else:
   # If response code is not ok (200), print the resulting http error code with description
     myResponse.raise_for_status()
 
+print("conf OK")
 
 
 while True :
     mytime = time.time()
+    data = []
     for host in hosts:
 #        client = ModbusTcpClient(host["ip_address"])
 #        client.connect()
         
-        request = []
         for modbusconnection in host["modbusconnection"] :
             
-            request.append(modbusconnectionloop(modbusconnection))
-    
+            data += (modbusconnectionloop(modbusconnection))
 #        client.close()
-    reponse_modbus = requests.post(url_api["modbusresult"],auth=(user,password),json = request)
+
+    reponse_modbus = requests.post(url_api["modbusresult"],auth=(user,password),json = data)
+    
     sleep =  (mytime + SLEEP ) - time.time()
 
     print("sleep " + str(sleep))
