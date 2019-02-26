@@ -39,19 +39,25 @@ VARTYPE_CHOICES = ((0, 'bits'),
                    (10, '8bit_int'),
                    (11, 'string'))
 
+def addresstoint(address):
+    if len(address) == 5 :
+        return int(address[1:],16)
+    else :
+        return int(address,16)
+    
 def modbus_get_buffer(client, address, count = 1, unit_ID = 0):
     
     if count == 0 :
         return None
     
-    if len(address) = 5 :
-        modbus_add = address[1:4]
-        type = address[0]
+    if len(address) == 5 :
+        modbus_add = addresstoint(address)
+        type = int(address[0])
     else :
-        modbus_add = address
+        modbus_add = addresstoint(address)
         type = 0
         
-    print("modbus type : %s address: %s" % (type, modbus_add))
+    print("modbus type : %s address: %i count: %i unitid: %i" % (type, modbus_add, count, unit_ID))
     
     try :
         if type == 0 :
@@ -68,6 +74,7 @@ def modbus_get_buffer(client, address, count = 1, unit_ID = 0):
         print("connection error")
         print("client:%s address:%i count:%i unit_id:%i" %(client, address, count ,unit_ID))
         return None
+
     
         
         
@@ -83,6 +90,7 @@ def modbus_get_decoder(buffer, byteorder = True, wordorder = True):
     else :
         wordorder_endian = Endian.Little
     
+    print("decoder")
     return BinaryPayloadDecoder.fromRegisters(buffer.registers,
                                               byteorder=byteorder_endian,
                                               wordorder=wordorder_endian)
@@ -124,6 +132,7 @@ def modbusconnectionloop(modbusconnection) :
     for loop in modbusconnection["loop"] :
         buffer = modbus_get_buffer(modbusconnection["client"], loop["firstaddress"],loop["count"] ,modbusconnection["unit_ID"])
         if buffer is None :
+            print("buffer  == None")
             continue
         decoder = modbus_get_decoder(buffer, modbusconnection["byte_bigEndian"], modbusconnection["word_bigEndian"])
             
@@ -132,12 +141,14 @@ def modbusconnectionloop(modbusconnection) :
             try :
                 print("address: %s skip: %i" % (modbusaddress["address"], modbusaddress["skip"]))
             except KeyError:
-                pass
+                print("address: %s" % (modbusaddress["address"]))
+                
             
             result = modbus_decode(decoder, modbusaddress["vartype"])
+            print(result)
             
             try :
-                decoder.skip_bytes(modbusaddress["skip"])
+                decoder.skip_bytes(modbusaddress["skip"] * 2)
             except KeyError:
                 pass
     
@@ -190,41 +201,42 @@ if(myResponse.ok):
                     connection["loop"] = []
                     
                     for i in range(5) :
-                        connection["loop"].append({"firstaddress": 100000 , "lastaddress" : 0, "count" : 0})
+                        connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
                     
                     last = None
                     last_type = None
+        
                     
                     for modbusaddress in connection["modbusaddress"] :
                         
                         
-                        type = int(modbusaddress["address"] / 10000) if modbusaddress["address"] != 0 else 0
+                        type = int(modbusaddress["address"][0]) if len(modbusaddress["address"]) == 5 else 0
                         
                         if last is None:
                             #Premier passage dans la boucle
                             pass
                         
                         if last is not None:
-                            last["skip"] = modbusaddress["address"] - last["address"] - last["count"] if type == last_type else 0
+                            last["skip"] = addresstoint(modbusaddress["address"]) - addresstoint(last["address"]) - last["count"] if type == last_type else 0
                              
                         
-                        if modbusaddress["address"] < connection["loop"][type]["firstaddress"] :
+                        if addresstoint(modbusaddress["address"]) < addresstoint(connection["loop"][type]["firstaddress"]) :
                                 connection["loop"][type]["firstaddress"] = modbusaddress["address"]
                                  
-                        if modbusaddress["address"] > connection["loop"][type]["lastaddress"] :
+                        if addresstoint(modbusaddress["address"]) > addresstoint(connection["loop"][type]["lastaddress"]) :
                                 connection["loop"][type]["lastaddress"] = modbusaddress["address"]
                                 connection["loop"][type]["count"] = modbusaddress["count"]
                                 
                         last = modbusaddress
                         last_type = type
-                        print(modbusaddress["address"])
+                        #print(modbusaddress["address"])
                         
 
                     for loop in connection["loop"] :
                         loop["firstaddress"] = loop["firstaddress"] if loop["firstaddress"] != 100000 else 0
-                        loop["count"] = loop["lastaddress"] - loop["firstaddress"] + loop["count"] if loop["count"] > 0 else 0
+                        loop["count"] = addresstoint(loop["lastaddress"]) - addresstoint(loop["firstaddress"]) + loop["count"] if loop["count"] > 0 else 0
                         
-                    print(connection["loop"])
+                    #print(connection["loop"])
                      
                     
                     
@@ -241,7 +253,6 @@ else:
     myResponse.raise_for_status()
 
 print("conf OK")
-
 
 while True :
     mytime = time.time()
