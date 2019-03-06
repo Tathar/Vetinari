@@ -39,9 +39,9 @@ VARTYPE_CHOICES = ((0, 'bits'),
                    (10, '8bit_int'),
                    (11, 'string'))
 
-def addresstoint(address):
+def addresstoint(address,exclude = 1):
     if len(address) == 5 :
-        return int(address[1:],16)
+        return int(address[exclude:],16)
     else :
         return int(address,16)
     
@@ -57,7 +57,7 @@ def modbus_get_buffer(client, address, count = 1, unit_ID = 0):
         modbus_add = addresstoint(address)
         type = 0
         
-    print("modbus type : %s address: %i count: %i unitid: %i" % (type, modbus_add, count, unit_ID))
+#    print("modbus type : %s address: %i count: %i unitid: %i" % (type, modbus_add, count, unit_ID))
     
     try :
         if type == 0 :
@@ -72,7 +72,7 @@ def modbus_get_buffer(client, address, count = 1, unit_ID = 0):
             return client.read_input_registers(modbus_add, count, unit=unit_ID)
     except ConnectionException:
         print("connection error")
-        print("client:%s address:%i count:%i unit_id:%i" %(client, address, count ,unit_ID))
+        print("client:%s address:%s count:%i unit_id:%i" %(client, address, count ,unit_ID))
         return None
 
     
@@ -90,7 +90,6 @@ def modbus_get_decoder(buffer, byteorder = True, wordorder = True):
     else :
         wordorder_endian = Endian.Little
     
-    print("decoder")
     return BinaryPayloadDecoder.fromRegisters(buffer.registers,
                                               byteorder=byteorder_endian,
                                               wordorder=wordorder_endian)
@@ -130,22 +129,30 @@ def modbusconnectionloop(modbusconnection) :
     ret = []
     
     for loop in modbusconnection["loop"] :
+        buffer = None
+        decoder = None
         buffer = modbus_get_buffer(modbusconnection["client"], loop["firstaddress"],loop["count"] ,modbusconnection["unit_ID"])
         if buffer is None :
-            print("buffer  == None")
+#            print("buffer  == None")
             continue
-        decoder = modbus_get_decoder(buffer, modbusconnection["byte_bigEndian"], modbusconnection["word_bigEndian"])
+        
+        try:
+            decoder = modbus_get_decoder(buffer, modbusconnection["byte_bigEndian"], modbusconnection["word_bigEndian"])
+        except ModbusIOException :  
+            print("ModbusIOException")
+            continue
+            
             
         for modbusaddress in modbusconnection["modbusaddress"] :
     #                 print(modbusaddress["address"])
-            try :
-                print("address: %s skip: %i" % (modbusaddress["address"], modbusaddress["skip"]))
-            except KeyError:
-                print("address: %s" % (modbusaddress["address"]))
+#            try :
+#                print("address: %s skip: %i" % (modbusaddress["address"], modbusaddress["skip"]))
+#            except KeyError:
+#                print("address: %s" % (modbusaddress["address"]))
                 
             
             result = modbus_decode(decoder, modbusaddress["vartype"])
-            print(result)
+#            print(result)
             
             try :
                 decoder.skip_bytes(modbusaddress["skip"] * 2)
@@ -220,10 +227,10 @@ if(myResponse.ok):
                             last["skip"] = addresstoint(modbusaddress["address"]) - addresstoint(last["address"]) - last["count"] if type == last_type else 0
                              
                         
-                        if addresstoint(modbusaddress["address"]) < addresstoint(connection["loop"][type]["firstaddress"]) :
+                        if addresstoint(modbusaddress["address"], 0) < addresstoint(connection["loop"][type]["firstaddress"], 0) :
                                 connection["loop"][type]["firstaddress"] = modbusaddress["address"]
                                  
-                        if addresstoint(modbusaddress["address"]) > addresstoint(connection["loop"][type]["lastaddress"]) :
+                        if addresstoint(modbusaddress["address"], 0) > addresstoint(connection["loop"][type]["lastaddress"], 0) :
                                 connection["loop"][type]["lastaddress"] = modbusaddress["address"]
                                 connection["loop"][type]["count"] = modbusaddress["count"]
                                 
@@ -254,10 +261,12 @@ else:
 
 print("conf OK")
 
+
 while True :
     mytime = time.time()
     data = []
     for host in hosts:
+#        print(host)
 #        client = ModbusTcpClient(host["ip_address"])
 #        client.connect()
         
