@@ -37,7 +37,7 @@ class ModBusAddressSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = ModBus_Address
-        fields = ("url", 'id', 'unit', 'connection', 'address', 'count','vartype', 'factor', 'delay', 'crit_min', 'warn_min', 'warn_max', 'crit_max')
+        fields = ("url", 'id', 'common_name', 'unit', 'connection', 'address', 'count','vartype', 'factor', 'delay', 'crit_min', 'warn_min', 'warn_max', 'crit_max')
 #         fields = ('__all__')
         
 class ModBusResultSerializer(serializers.HyperlinkedModelSerializer):

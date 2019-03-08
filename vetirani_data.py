@@ -9,6 +9,8 @@ from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.exceptions import ConnectionException
 
+from struct import pack, unpack
+
 import time
 
 from operator import itemgetter
@@ -120,6 +122,35 @@ def modbus_decode(decoder, vartype = 0):
         return decoder.decode_64bit_uint()
     elif vartype == 11 :
         return decoder.decode_string()
+    elif vartype == 12 : #24Bit float
+        """ Decodes a 48 bit float(double) from the buffer
+        """
+        decoder._pointer += 6
+        fstring = 'd'
+        handle = decoder._payload[decoder._pointer - 6:decoder._pointer]
+        handle = bytearray(2) + handle
+        handle = decoder._unpack_words(fstring, handle)
+        return unpack("!"+fstring, handle)[0]
+        
+    elif vartype == 13 : #24Bit int
+        """ Decodes a 48 bit signed int from the buffer
+        """
+        decoder._pointer += 6
+        fstring = 'q'
+        handle = decoder._payload[decoder._pointer - 6:decoder._pointer]
+        handle = bytearray(2) + handle
+        handle = decoder._unpack_words(fstring, handle)
+        return unpack("!"+fstring, handle)[0]
+    elif vartype == 14 : #24Bit uint
+        """ Decodes a 48 bit unsigned int from the buffer
+        """
+        decoder._pointer += 6
+        fstring = 'Q'
+        handle = decoder._payload[decoder._pointer - 6:decoder._pointer]
+        handle = bytearray(2) + handle
+        handle = decoder._unpack_words(fstring, handle)
+        return unpack("!"+fstring, handle)[0]
+    
     elif vartype < 1 :
         decoder.skip_bytes(vartype * -1)
         return None
@@ -152,7 +183,7 @@ def modbusconnectionloop(modbusconnection) :
                 
             
             result = modbus_decode(decoder, modbusaddress["vartype"])
-#            print(result)
+            #print(result)
             
             try :
                 decoder.skip_bytes(modbusaddress["skip"] * 2)
@@ -260,7 +291,6 @@ else:
     myResponse.raise_for_status()
 
 print("conf OK")
-
 
 while True :
     mytime = time.time()
