@@ -233,11 +233,11 @@ if(myResponse.ok):
                 url = url_api["modbusaddress"] + "?connection=" + str(connection["id"])
                 reponse_modbusaddress = requests.get(url,auth=(user,password))
                 if(reponse_modbusaddress.ok):
-                    connection["modbusaddress"] = reponse_modbusaddress.json()["results"]
+                    temp_modbusaddress = reponse_modbusaddress.json()["results"]
                     
-                    connection["modbusaddress"].sort(key=itemgetter("address"))
+                    temp_modbusaddress.sort(key=itemgetter("address"))
                     
-                    connection["loop"] = []
+                    connection["modbusaddress"] = []
                     
                     for i in range(5) :
                         connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
@@ -246,7 +246,7 @@ if(myResponse.ok):
                     last_type = None
         
                     
-                    for modbusaddress in connection["modbusaddress"] :
+                    for modbusaddress in temp_modbusaddress :
                         
                         
                         type = int(modbusaddress["address"][0]) if len(modbusaddress["address"]) == 5 else 0

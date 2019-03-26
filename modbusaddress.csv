@@ -1,0 +1,2 @@
+"common_name","unit","connection","address","count","vartype","factor","delay","crit_min","warn_min","warn_max","crit_max"
+"Consommation","KW/H",1,40109,3,"48bit_int",0.1,60,0,0,0,0
