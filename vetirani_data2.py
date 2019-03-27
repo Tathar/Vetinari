@@ -175,7 +175,7 @@ def modbusconnectionloop(modbusconnection) :
             return ret
             
             
-        for modbusaddress in modbusconnection["modbusaddress"] :
+        for modbusaddress in loop["modbusaddress"] :
     #                 print(modbusaddress["address"])
 #            try :
 #                print("address: %s skip: %i" % (modbusaddress["address"], modbusaddress["skip"]))
@@ -184,7 +184,7 @@ def modbusconnectionloop(modbusconnection) :
                 
             
             result = modbus_decode(decoder, modbusaddress["vartype"])
-            #print(result)
+            print(result)
             
             try :
                 decoder.skip_bytes(modbusaddress["skip"] * 2)
@@ -221,11 +221,11 @@ if(myResponse.ok):
 #    jDatas = json.loads(myResponse.content)
 
     hosts = myResponse.json()["results"]
-
     for host in hosts:
         url = url_api["modbusconnection"] + "?host=" + str(host["id"])
         reponse_modbusconnection = requests.get(url,auth=(user,password))
         if(reponse_modbusconnection.ok):
+            
             host["modbusconnection"] = reponse_modbusconnection.json()["results"]
             
             for connection in host["modbusconnection"] :
@@ -237,13 +237,13 @@ if(myResponse.ok):
                     
                     temp_modbusaddress.sort(key=itemgetter("address"))
                     
-                    connection["modbusaddress"] = []
+                    connection["loop"] = []
                     
-                    for i in range(5) :
-                        connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
+#                     for i in range(5) :
+#                         connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
                     
                     last = None
-                    last_type = None
+#                     last_type = None
         
                     
                     for modbusaddress in temp_modbusaddress :
@@ -253,22 +253,34 @@ if(myResponse.ok):
                         
                         if last is None:
                             #Premier passage dans la boucle
-                            pass
+                            connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
+                            connection["loop"][-1]["modbusaddress"] = []
+            
                         
                         if last is not None:
-                            last["skip"] = addresstoint(modbusaddress["address"]) - addresstoint(last["address"]) - last["count"] if type == last_type else 0
+                            last["skip"] = addresstoint(modbusaddress["address"]) - addresstoint(last["address"]) - last["count"]
+                            
+                            if last["skip"] < 4 :
+                                connection["loop"][-1]["modbusaddress"].append(last)
+                            else :
+                                last["skip"] = 0
+                                connection["loop"][-1]["modbusaddress"].append(last)
+                                connection["loop"].append({"firstaddress": "ffffff" , "lastaddress" : "00000", "count" : 0})
+                                connection["loop"][-1]["modbusaddress"] = []
                              
-                        if addresstoint(modbusaddress["address"], 0) < addresstoint(connection["loop"][type]["firstaddress"], 0) :
-                                connection["loop"][type]["firstaddress"] = modbusaddress["address"]
+                        if addresstoint(modbusaddress["address"], 0) < addresstoint(connection["loop"][-1]["firstaddress"], 0) :
+                                connection["loop"][-1]["firstaddress"] = modbusaddress["address"]
                                  
-                        if addresstoint(modbusaddress["address"], 0) > addresstoint(connection["loop"][type]["lastaddress"], 0) :
-                                connection["loop"][type]["lastaddress"] = modbusaddress["address"]
-                                connection["loop"][type]["count"] = modbusaddress["count"]
+                        if addresstoint(modbusaddress["address"], 0) > addresstoint(connection["loop"][-1]["lastaddress"], 0) :
+                                connection["loop"][-1]["lastaddress"] = modbusaddress["address"]
+                                connection["loop"][-1]["count"] = modbusaddress["count"]
                                 
                         last = modbusaddress
-                        last_type = type
+#                         last_type = type
                         #print(modbusaddress["address"])
-                        
+                       
+                    if last is not None:
+                        connection["loop"][-1]["modbusaddress"].append(last)
 
                     for loop in connection["loop"] :
                         loop["firstaddress"] = loop["firstaddress"] if loop["firstaddress"] != 100000 else 0
@@ -282,28 +294,29 @@ if(myResponse.ok):
                 else:
                     # If response code is not ok (200), print the resulting http error code with description
                     reponse_modbusaddress.raise_for_status()
-            
+        
+                
         else:
             # If response code is not ok (200), print the resulting http error code with description
             reponse_modbusconnection.raise_for_status()
-            
-        print(host)
+        
+           
 else:
   # If response code is not ok (200), print the resulting http error code with description
     myResponse.raise_for_status()
 
+print(hosts)
 print("conf OK")
 
 while True :
     mytime = time.time()
     data = []
     for host in hosts:
-#        print(host)
+        #print(host)
 #        client = ModbusTcpClient(host["ip_address"])
 #        client.connect()
         
         for modbusconnection in host["modbusconnection"] :
-            
             data += (modbusconnectionloop(modbusconnection))
 #        client.close()
 
